@@ -1,0 +1,45 @@
+version: "3.6"
+services:
+  web:
+    container_name: ${COMPOSE_PROJECT_NAME}
+    image: devopsmv/node:16
+    user: user
+    stdin_open: true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.frontend.rule=Host:${VIRTUAL_HOST}"
+      - "traefik.port=${VIRTUAL_PORT}"
+      - "traefik.docker.network=${PROXY_NETWORK}"
+    volumes:
+      - ../:/usr/src/app
+      - type: volume
+        source: yarncache
+        target: /home/user/.cache/yarn
+    working_dir: /usr/src/app
+    ports:
+      - ${VIRTUAL_PORT}:${VIRTUAL_PORT}
+    links:
+      - db
+  db:
+    container_name: ${COMPOSE_PROJECT_NAME}-db
+    image: postgres:14
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - type: volume
+        source: db
+        target: /var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+
+volumes:
+  db:
+  yarncache:
+    external: true
+
+networks:
+  default:
+    external: true
+    name: ${PROXY_NETWORK}
